@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Solfeo — Clave de Sol</title>
+<style>
+  :root {
+    --bg: #f9f7f2;
+    --surface: #ffffff;
+    --surface2: #f1ede5;
+    --border: #e0d9ce;
+    --text: #1c1a16;
+    --muted: #7a7468;
+    --accent: #2d5fa3;
+    --accent-bg: #e8f0fb;
+    --ok: #1a7a4a;
+    --ok-bg: #e6f5ed;
+    --ok-border: #9ed8bb;
+    --err: #b33a2a;
+    --err-bg: #fdecea;
+    --err-border: #f5b0a6;
+    --note-fill: #1c1a16;
+    --staff: #4a453c;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #18161200;
+      --surface: #252118;
+      --surface2: #1c1a14;
+      --border: #38342a;
+      --text: #f0ece4;
+      --muted: #9a9282;
+      --accent: #6b9de8;
+      --accent-bg: #1a2840;
+      --ok: #4ecb85;
+      --ok-bg: #0e2a1c;
+      --ok-border: #1e5c38;
+      --err: #f07060;
+      --err-bg: #2a0f0a;
+      --err-border: #6b2318;
+      --note-fill: #f0ece4;
+      --staff: #8a8278;
+    }
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Georgia', serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 2rem 1rem;
+  }
+
+  h1 {
+    font-size: 1.1rem;
+    font-weight: normal;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.3rem;
+  }
+  .subtitle {
+    font-size: 0.78rem;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 2rem;
+  }
+
+  .container { width: 100%; max-width: 520px; }
+
+  /* Stats */
+  .stats {
+    display: flex;
+    justify-content: center;
+    gap: 2.5rem;
+    margin-bottom: 1.75rem;
+  }
+  .stat { text-align: center; }
+  .stat-val { font-size: 2rem; font-weight: bold; color: var(--text); line-height: 1; }
+  .stat-lbl { font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-top: 3px; }
+
+  /* Staff */
+  .staff-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 0.75rem;
+    margin-bottom: 1rem;
+    position: relative;
+  }
+  .staff-wrap svg { display: block; width: 100%; }
+
+  /* Feedback */
+  .feedback {
+    text-align: center;
+    height: 28px;
+    margin-bottom: 1rem;
+    font-size: 1rem;
+    font-weight: bold;
+    letter-spacing: 0.04em;
+    transition: color 0.2s;
+  }
+  .feedback.ok  { color: var(--ok); }
+  .feedback.err { color: var(--err); }
+
+  /* Note buttons */
+  .notes-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 6px;
+    margin-bottom: 1.25rem;
+  }
+  .note-btn {
+    padding: 14px 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text);
+    font-family: 'Georgia', serif;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background 0.1s, border-color 0.1s, color 0.1s, transform 0.08s;
+    user-select: none;
+  }
+  .note-btn:hover { background: var(--surface2); }
+  .note-btn:active { transform: scale(0.96); }
+  .note-btn.ok  { background: var(--ok-bg);  border-color: var(--ok-border);  color: var(--ok); }
+  .note-btn.err { background: var(--err-bg); border-color: var(--err-border); color: var(--err); }
+
+  /* Mode tabs */
+  .modes {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 1.25rem;
+  }
+  .mode-btn {
+    flex: 1;
+    padding: 8px 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--muted);
+    font-family: 'Georgia', serif;
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-transform: uppercase;
+  }
+  .mode-btn.active {
+    background: var(--accent-bg);
+    border-color: var(--accent);
+    color: var(--accent);
+    font-weight: bold;
+  }
+
+  /* Cheat sheet */
+  .cs-toggle {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: 'Georgia', serif;
+    font-size: 0.78rem;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    margin-bottom: 0.75rem;
+    display: block;
+    width: 100%;
+    text-align: center;
+  }
+  .cheatsheet {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    display: none;
+  }
+  .cheatsheet.visible { display: block; }
+  .cs-row { margin-bottom: 0.5rem; font-size: 0.82rem; line-height: 1.6; color: var(--muted); }
+  .cs-row b { color: var(--text); }
+  .cs-row em { font-style: italic; }
+  .cs-staff { margin-top: 0.75rem; }
+
+  /* Progress bar */
+  .progress-bar {
+    width: 100%;
+    height: 3px;
+    background: var(--border);
+    border-radius: 99px;
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 99px;
+    transition: width 0.4s ease;
+    width: 0%;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Solfeo</h1>
+  <div class="subtitle">Clave de Sol — Identificación de notas</div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-val" id="sc">0</div><div class="stat-lbl">correctas</div></div>
+    <div class="stat"><div class="stat-val" id="sr">0</div><div class="stat-lbl">racha</div></div>
+    <div class="stat"><div class="stat-val" id="st">0</div><div class="stat-lbl">intentos</div></div>
+  </div>
+
+  <div class="progress-bar"><div class="progress-fill" id="pf"></div></div>
+
+  <div class="staff-wrap">
+    <svg id="staff-svg" viewBox="0 0 380 200" xmlns="http://www.w3.org/2000/svg">
+      <!-- Staff lines -->
+      <line x1="80" y1="70"  x2="350" y2="70"  stroke="var(--staff)" stroke-width="1.4"/>
+      <line x1="80" y1="90"  x2="350" y2="90"  stroke="var(--staff)" stroke-width="1.4"/>
+      <line x1="80" y1="110" x2="350" y2="110" stroke="var(--staff)" stroke-width="1.4"/>
+      <line x1="80" y1="130" x2="350" y2="130" stroke="var(--staff)" stroke-width="1.4"/>
+      <line x1="80" y1="150" x2="350" y2="150" stroke="var(--staff)" stroke-width="1.4"/>
+      <!-- Ledger line for Do below staff -->
+      <line id="ledger-do" x1="196" y1="170" x2="226" y2="170" stroke="var(--staff)" stroke-width="1.4" opacity="0"/>
+      <!-- G clef (treble) -->
+      <text x="82" y="166" font-size="116" font-family="'Times New Roman', serif" fill="var(--staff)">𝄞</text>
+      <!-- Note head -->
+      <ellipse id="note-head" cx="211" cy="110" rx="12" ry="9" fill="var(--note-fill)"/>
+      <!-- Note stem -->
+      <line id="note-stem" x1="223" y1="110" x2="223" y2="65" stroke="var(--note-fill)" stroke-width="2.2"/>
+      <!-- Position label (shown briefly during reveal) -->
+      <text id="pos-label" x="245" y="115" font-size="13" fill="var(--muted)" opacity="0" font-family="'Georgia', serif"></text>
+    </svg>
+  </div>
+
+  <div class="feedback" id="fb"></div>
+
+  <div class="notes-grid" id="btns">
+    <button class="note-btn" onclick="chk('Do')">Do</button>
+    <button class="note-btn" onclick="chk('Re')">Re</button>
+    <button class="note-btn" onclick="chk('Mi')">Mi</button>
+    <button class="note-btn" onclick="chk('Fa')">Fa</button>
+    <button class="note-btn" onclick="chk('Sol')">Sol</button>
+    <button class="note-btn" onclick="chk('La')">La</button>
+    <button class="note-btn" onclick="chk('Si')">Si</button>
+  </div>
+
+  <div class="modes">
+    <button class="mode-btn active" onclick="setMode('all',this)">Todas</button>
+    <button class="mode-btn" onclick="setMode('lines',this)">Solo líneas</button>
+    <button class="mode-btn" onclick="setMode('spaces',this)">Solo espacios</button>
+  </div>
+
+  <button class="cs-toggle" onclick="toggleCS()" id="cs-btn">▾ Mostrar guía de posiciones</button>
+
+  <div class="cheatsheet" id="cs">
+    <div class="cs-row"><b>Líneas</b> (1ª a 5ª, de abajo a arriba): <b>Mi – Sol – Si – Re – Fa</b></div>
+    <div class="cs-row" style="margin-bottom:0.75rem"><em>→ "Mi Sol Sí Recuerdo Fácil"</em></div>
+    <div class="cs-row"><b>Espacios</b> (1º a 4º, de abajo a arriba): <b>Fa – La – Do – Mi</b></div>
+    <div class="cs-row" style="margin-bottom:0.75rem"><em>→ "FA – LA – DO – MI" (suena solo)</em></div>
+    <div class="cs-row"><b>Línea adicional inferior:</b> Do (central)</div>
+    <div class="cs-staff">
+      <svg viewBox="0 0 290 230" style="width:100%;" xmlns="http://www.w3.org/2000/svg">
+        <!-- Staff lines -->
+        <line x1="50" y1="55"  x2="190" y2="55"  stroke="var(--staff)" stroke-width="1"/>
+        <line x1="50" y1="75"  x2="190" y2="75"  stroke="var(--staff)" stroke-width="1"/>
+        <line x1="50" y1="95"  x2="190" y2="95"  stroke="var(--staff)" stroke-width="1"/>
+        <line x1="50" y1="115" x2="190" y2="115" stroke="var(--staff)" stroke-width="1"/>
+        <line x1="50" y1="135" x2="190" y2="135" stroke="var(--staff)" stroke-width="1"/>
+        <!-- Ledger -->
+        <line x1="108" y1="155" x2="138" y2="155" stroke="var(--staff)" stroke-width="1"/>
+        <!-- Notes on lines -->
+        <ellipse cx="123" cy="55"  rx="9" ry="7" fill="var(--note-fill)" opacity="0.85"/>
+        <ellipse cx="123" cy="75"  rx="9" ry="7" fill="var(--note-fill)" opacity="0.85"/>
+        <ellipse cx="123" cy="95"  rx="9" ry="7" fill="var(--note-fill)" opacity="0.85"/>
+        <ellipse cx="123" cy="115" rx="9" ry="7" fill="var(--note-fill)" opacity="0.85"/>
+        <ellipse cx="123" cy="135" rx="9" ry="7" fill="var(--note-fill)" opacity="0.85"/>
+        <ellipse cx="123" cy="155" rx="9" ry="7" fill="var(--note-fill)" opacity="0.5"/>
+        <!-- Notes in spaces -->
+        <ellipse cx="123" cy="65"  rx="9" ry="7" fill="none" stroke="var(--note-fill)" stroke-width="1.5" opacity="0.7"/>
+        <ellipse cx="123" cy="85"  rx="9" ry="7" fill="none" stroke="var(--note-fill)" stroke-width="1.5" opacity="0.7"/>
+        <ellipse cx="123" cy="105" rx="9" ry="7" fill="none" stroke="var(--note-fill)" stroke-width="1.5" opacity="0.7"/>
+        <ellipse cx="123" cy="125" rx="9" ry="7" fill="none" stroke="var(--note-fill)" stroke-width="1.5" opacity="0.7"/>
+        <!-- Labels - lines (left) -->
+        <text x="44" y="59"  font-size="11" fill="var(--text)" font-weight="bold" text-anchor="end" font-family="Georgia,serif">Fa</text>
+        <text x="44" y="79"  font-size="11" fill="var(--text)" font-weight="bold" text-anchor="end" font-family="Georgia,serif">Re</text>
+        <text x="44" y="99"  font-size="11" fill="var(--text)" font-weight="bold" text-anchor="end" font-family="Georgia,serif">Si</text>
+        <text x="44" y="119" font-size="11" fill="var(--text)" font-weight="bold" text-anchor="end" font-family="Georgia,serif">Sol</text>
+        <text x="44" y="139" font-size="11" fill="var(--text)" font-weight="bold" text-anchor="end" font-family="Georgia,serif">Mi</text>
+        <text x="44" y="159" font-size="11" fill="var(--muted)" text-anchor="end" font-family="Georgia,serif">Do*</text>
+        <!-- Labels - spaces (right) -->
+        <text x="137" y="69"  font-size="11" fill="var(--muted)" font-family="Georgia,serif">Mi</text>
+        <text x="137" y="89"  font-size="11" fill="var(--muted)" font-family="Georgia,serif">Do</text>
+        <text x="137" y="109" font-size="11" fill="var(--muted)" font-family="Georgia,serif">La</text>
+        <text x="137" y="129" font-size="11" fill="var(--muted)" font-family="Georgia,serif">Fa</text>
+        <!-- Legend -->
+        <ellipse cx="200" cy="175" rx="8" ry="6" fill="var(--note-fill)" opacity="0.85"/>
+        <text x="212" y="179" font-size="10" fill="var(--muted)" font-family="Georgia,serif">en línea</text>
+        <ellipse cx="200" cy="195" rx="8" ry="6" fill="none" stroke="var(--note-fill)" stroke-width="1.5" opacity="0.7"/>
+        <text x="212" y="199" font-size="10" fill="var(--muted)" font-family="Georgia,serif">en espacio</text>
+        <text x="44" y="215" font-size="10" fill="var(--muted)" font-family="Georgia,serif">* línea adicional inferior</text>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<script>
+// All notes: y position in SVG, name, type
+const ALL = [
+  {n:'Do',  y:170, t:'line'},
+  {n:'Re',  y:160, t:'space'},
+  {n:'Mi',  y:150, t:'line'},
+  {n:'Fa',  y:140, t:'space'},
+  {n:'Sol', y:130, t:'line'},
+  {n:'La',  y:120, t:'space'},
+  {n:'Si',  y:110, t:'line'},
+  {n:'Do',  y:100, t:'space'},
+  {n:'Re',  y:90,  t:'line'},
+  {n:'Mi',  y:80,  t:'space'},
+  {n:'Fa',  y:70,  t:'line'},
+];
+
+let pool = ALL.slice();
+let cur = null, sc = 0, tot = 0, str = 0, locked = false;
+
+function setMode(m, btn) {
+  pool = m === 'lines'  ? ALL.filter(x => x.t === 'line') :
+         m === 'spaces' ? ALL.filter(x => x.t === 'space') : ALL.slice();
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  sc = 0; tot = 0; str = 0;
+  ['sc','st','sr'].forEach(id => document.getElementById(id).textContent = '0');
+  document.getElementById('pf').style.width = '0%';
+  cur = null;
+  next();
+}
+
+function showNote(note) {
+  const nh = document.getElementById('note-head');
+  const ns = document.getElementById('note-stem');
+  const ll = document.getElementById('ledger-do');
+
+  nh.setAttribute('cy', note.y);
+
+  // Stem direction: up if below middle line, down if above
+  if (note.y >= 110) {
+    ns.setAttribute('x1', 223); ns.setAttribute('y1', note.y);
+    ns.setAttribute('x2', 223); ns.setAttribute('y2', note.y - 48);
+  } else {
+    ns.setAttribute('x1', 199); ns.setAttribute('y1', note.y);
+    ns.setAttribute('x2', 199); ns.setAttribute('y2', note.y + 48);
+  }
+
+  // Ledger line for low Do
+  ll.setAttribute('opacity', note.y === 170 ? '0.9' : '0');
+}
+
+function next() {
+  locked = false;
+  document.getElementById('fb').textContent = '';
+  document.getElementById('fb').className = 'feedback';
+  document.querySelectorAll('.note-btn').forEach(b => b.className = 'note-btn');
+  document.getElementById('pos-label').setAttribute('opacity', '0');
+
+  let nxt, tries = 0;
+  do {
+    nxt = pool[Math.floor(Math.random() * pool.length)];
+    tries++;
+  } while (cur && nxt.n === cur.n && nxt.y === cur.y && tries < 30);
+
+  cur = nxt;
+  showNote(cur);
+}
+
+function chk(ans) {
+  if (locked) return;
+  locked = true;
+  tot++;
+
+  const ok = ans === cur.n;
+  document.querySelectorAll('.note-btn').forEach(b => {
+    if (b.textContent === cur.n) b.classList.add('ok');
+    if (b.textContent === ans && !ok) b.classList.add('err');
+  });
+
+  const fb = document.getElementById('fb');
+  if (ok) {
+    sc++; str++;
+    fb.textContent = '✓ ¡Correcto!';
+    fb.className = 'feedback ok';
+  } else {
+    str = 0;
+    fb.textContent = '✗ Era ' + cur.n;
+    fb.className = 'feedback err';
+    // Briefly show position label
+    const lbl = document.getElementById('pos-label');
+    const yOff = cur.y > 110 ? cur.y - 14 : cur.y + 18;
+    lbl.setAttribute('y', yOff);
+    lbl.textContent = cur.t === 'line' ? cur.n + ' (línea)' : cur.n + ' (espacio)';
+    lbl.setAttribute('opacity', '0.8');
+  }
+
+  document.getElementById('sc').textContent = sc;
+  document.getElementById('sr').textContent = str;
+  document.getElementById('st').textContent = tot;
+  // Progress bar: max 20 correct
+  document.getElementById('pf').style.width = Math.min(100, sc * 5) + '%';
+
+  setTimeout(next, 1500);
+}
+
+function toggleCS() {
+  const cs = document.getElementById('cs');
+  const btn = document.getElementById('cs-btn');
+  const visible = cs.classList.toggle('visible');
+  btn.textContent = visible ? '▴ Ocultar guía de posiciones' : '▾ Mostrar guía de posiciones';
+}
+
+next();
+</script>
+</body>
+</html>
