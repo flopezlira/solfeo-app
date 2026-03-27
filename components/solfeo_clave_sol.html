@@ -233,8 +233,8 @@
       <line x1="80" y1="110" x2="350" y2="110" stroke="var(--staff)" stroke-width="1.4"/>
       <line x1="80" y1="130" x2="350" y2="130" stroke="var(--staff)" stroke-width="1.4"/>
       <line x1="80" y1="150" x2="350" y2="150" stroke="var(--staff)" stroke-width="1.4"/>
-      <!-- Ledger line for Do below staff -->
-      <line id="ledger-do" x1="196" y1="170" x2="226" y2="170" stroke="var(--staff)" stroke-width="1.4" opacity="0"/>
+      <!-- Ledger lines (dynamic) -->
+      <g id="ledger-lines"></g>
       <!-- G clef (treble) -->
       <text x="82" y="166" font-size="116" font-family="'Times New Roman', serif" fill="var(--staff)">𝄞</text>
       <!-- Note head -->
@@ -262,6 +262,7 @@
     <button class="mode-btn active" onclick="setMode('all',this)">Todas</button>
     <button class="mode-btn" onclick="setMode('lines',this)">Solo líneas</button>
     <button class="mode-btn" onclick="setMode('spaces',this)">Solo espacios</button>
+    <button class="mode-btn" id="ext-btn" onclick="toggleExtended()">Extendido</button>
   </div>
 
   <button class="cs-toggle" onclick="toggleCS()" id="cs-btn">▾ Mostrar guía de posiciones</button>
@@ -319,7 +320,7 @@
 
 <script>
 // All notes: y position in SVG, name, type
-const ALL = [
+const STANDARD = [
   {n:'Do',  y:170, t:'line'},
   {n:'Re',  y:160, t:'space'},
   {n:'Mi',  y:150, t:'line'},
@@ -332,15 +333,41 @@ const ALL = [
   {n:'Mi',  y:80,  t:'space'},
   {n:'Fa',  y:70,  t:'line'},
 ];
-
+const EXTENDED = [
+  {n:'La',  y:190, t:'line'},
+  {n:'Si',  y:180, t:'space'},
+  ...STANDARD,
+  {n:'Sol', y:60,  t:'space'},
+  {n:'La',  y:50,  t:'line'},
+  {n:'Si',  y:40,  t:'space'},
+];
+let ALL = STANDARD;
 let pool = ALL.slice();
+let extendedMode = false;
 let cur = null, sc = 0, tot = 0, str = 0, locked = false;
 
 function setMode(m, btn) {
   pool = m === 'lines'  ? ALL.filter(x => x.t === 'line') :
          m === 'spaces' ? ALL.filter(x => x.t === 'space') : ALL.slice();
-  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.mode-btn:not(#ext-btn)').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
+  sc = 0; tot = 0; str = 0;
+  ['sc','st','sr'].forEach(id => document.getElementById(id).textContent = '0');
+  document.getElementById('pf').style.width = '0%';
+  cur = null;
+  next();
+}
+
+function toggleExtended() {
+  extendedMode = !extendedMode;
+  ALL = extendedMode ? EXTENDED : STANDARD;
+  const eb = document.getElementById('ext-btn');
+  eb.classList.toggle('active', extendedMode);
+  // Rebuild pool respecting active filter
+  const af = document.querySelector('.mode-btn.active:not(#ext-btn)');
+  const ft = af ? af.textContent.trim() : '';
+  pool = ft==='Solo líneas'  ? ALL.filter(x=>x.t==='line') :
+         ft==='Solo espacios' ? ALL.filter(x=>x.t==='space') : ALL.slice();
   sc = 0; tot = 0; str = 0;
   ['sc','st','sr'].forEach(id => document.getElementById(id).textContent = '0');
   document.getElementById('pf').style.width = '0%';
@@ -351,7 +378,7 @@ function setMode(m, btn) {
 function showNote(note) {
   const nh = document.getElementById('note-head');
   const ns = document.getElementById('note-stem');
-  const ll = document.getElementById('ledger-do');
+  const lg = document.getElementById('ledger-lines');
 
   nh.setAttribute('cy', note.y);
 
@@ -364,8 +391,25 @@ function showNote(note) {
     ns.setAttribute('x2', 199); ns.setAttribute('y2', note.y + 48);
   }
 
-  // Ledger line for low Do
-  ll.setAttribute('opacity', note.y === 170 ? '0.9' : '0');
+  // Draw ledger lines dynamically
+  lg.innerHTML = '';
+  const ns2 = 'http://www.w3.org/2000/svg';
+  // Below staff (y > 150): ledger at 170, 190, ...
+  for (let ly = 170; ly <= note.y + 1; ly += 20) {
+    const l = document.createElementNS(ns2, 'line');
+    l.setAttribute('x1', 196); l.setAttribute('y1', ly);
+    l.setAttribute('x2', 226); l.setAttribute('y2', ly);
+    l.setAttribute('stroke', 'var(--staff)'); l.setAttribute('stroke-width', '1.4');
+    lg.appendChild(l);
+  }
+  // Above staff (y < 70): ledger at 50, 30, ...
+  for (let ly = 50; ly >= note.y - 1; ly -= 20) {
+    const l = document.createElementNS(ns2, 'line');
+    l.setAttribute('x1', 196); l.setAttribute('y1', ly);
+    l.setAttribute('x2', 226); l.setAttribute('y2', ly);
+    l.setAttribute('stroke', 'var(--staff)'); l.setAttribute('stroke-width', '1.4');
+    lg.appendChild(l);
+  }
 }
 
 function next() {
