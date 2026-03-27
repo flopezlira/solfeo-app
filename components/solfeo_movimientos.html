@@ -317,7 +317,8 @@ function animate(ts){
   if(trail.length>TRLEN) trail.shift();
 
   if(pos.seg!==prevBeat){
-    curBeat=pos.seg; prevBeat=pos.seg;
+    prevBeat=pos.seg;
+    curBeat=(pos.seg-1+pat.beats)%pat.beats;
     flashes[curBeat]=1.0;
     click(curBeat===0);
     // UI

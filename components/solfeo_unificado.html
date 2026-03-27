@@ -378,8 +378,9 @@ function animate(ts){
   if(trail.length>TRLEN)trail.shift();
 
   if(pos.seg!==prevBeat){
-    const b=pos.seg;
-    prevBeat=b; curBeat=b;
+    prevBeat=pos.seg;
+    const b=(pos.seg-1+pat.beats)%pat.beats;
+    curBeat=b;
     flashes[b]=1.0;
     beep(b===0);
 
