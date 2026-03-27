@@ -166,6 +166,7 @@ const PATS = {
     name:'Péndulo', beats:2, bu:'♩',
     pts:  [[150,218],[150,32]],
     dirs: ['Abajo','Arriba'],
+    strengths: [1.0, 0.3],
     lblc: [[0,22,'center','top'],[0,-22,'center','bottom']],
     hint: '"Un — dos,   un — dos…"  —  el movimiento más simple: solo arriba y abajo.',
   },
@@ -173,6 +174,7 @@ const PATS = {
     name:'Triángulo', beats:3, bu:'♩',
     pts:  [[150,218],[244,118],[150,32]],
     dirs: ['Abajo','Derecha','Arriba'],
+    strengths: [1.0, 0.3, 0.3],
     lblc: [[0,22,'center','top'],[0,20,'center','top'],[0,-22,'center','bottom']],
     hint: '"Un-dos-tres…"  —  el recorrido forma un triángulo. El 1 siempre va abajo.',
   },
@@ -180,6 +182,7 @@ const PATS = {
     name:'Cuadrado', beats:4, bu:'♩',
     pts:  [[150,218],[55,118],[245,118],[150,32]],
     dirs: ['Abajo','Izquierda','Derecha','Arriba'],
+    strengths: [1.0, 0.3, 0.6, 0.3],
     lblc: [[0,22,'center','top'],[0,-20,'center','bottom'],[0,-20,'center','bottom'],[0,-22,'center','bottom']],
     hint: '"Un-dos-tres-cuatro…"  —  abajo, cruce izquierda, cruce derecha, arriba.',
   },
@@ -187,6 +190,7 @@ const PATS = {
     name:'Péndulo', beats:2, bu:'♩.',
     pts:  [[150,218],[150,32]],
     dirs: ['Abajo','Arriba'],
+    strengths: [1.0, 0.6],
     lblc: [[0,22,'center','top'],[0,-22,'center','bottom']],
     hint: 'Compás binario: dos pulsos de negra con puntillo. Abajo — arriba.',
   },
@@ -195,7 +199,7 @@ const PATS = {
 // ── State ─────────────────────────────────────────────────────────────────────
 let pk='2/4', bpm=72, playing=false;
 let t=0, lastTs=null, raf=null;
-let curBeat=-1, prevBeat=-1;
+let curBeat=-1, prevBeat=0;
 const trail=[], TRLEN=42;
 let flashes={};
 let aCtx=null;
@@ -205,14 +209,16 @@ function getAC(){
   if(!aCtx) aCtx=new(window.AudioContext||window.webkitAudioContext)();
   return aCtx;
 }
-function click(primary){
+function click(strength){
   try{
     const ac=getAC();
     const o=ac.createOscillator(), g=ac.createGain();
     o.connect(g); g.connect(ac.destination);
     o.type='triangle';
-    o.frequency.value=primary?860:580;
-    g.gain.setValueAtTime(primary?.36:.18, ac.currentTime);
+    const freq=strength>=0.8?860:strength>=0.5?720:580;
+    const gain=strength>=0.8?0.36:strength>=0.5?0.24:0.14;
+    o.frequency.value=freq;
+    g.gain.setValueAtTime(gain, ac.currentTime);
     g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime+0.09);
     o.start(ac.currentTime); o.stop(ac.currentTime+0.12);
   }catch(e){}
@@ -320,7 +326,7 @@ function animate(ts){
     prevBeat=pos.seg;
     curBeat=(pos.seg-1+pat.beats)%pat.beats;
     flashes[curBeat]=1.0;
-    click(curBeat===0);
+    click(pat.strengths[curBeat]);
     // UI
     document.getElementById('bn').textContent=curBeat+1;
     document.getElementById('bname').textContent=pat.name;
@@ -351,7 +357,7 @@ function tog(){
     document.querySelectorAll('.dc').forEach(c=>c.classList.remove('a'));
     trail.length=0; flashes={}; draw();
   }else{
-    playing=true; t=1/PATS[pk].beats; prevBeat=-1; curBeat=-1; trail.length=0; flashes={};
+    playing=true; t=0; prevBeat=0; curBeat=-1; trail.length=0; flashes={};
     btn.textContent='⏹ Detener'; btn.classList.add('on');
     raf=requestAnimationFrame(animate);
   }
@@ -359,7 +365,7 @@ function tog(){
 
 function selPat(k, btn){
   if(playing) tog();
-  pk=k; t=1/PATS[k].beats; trail.length=0; flashes={}; prevBeat=-1; curBeat=-1;
+  pk=k; t=0; trail.length=0; flashes={}; prevBeat=0; curBeat=-1;
   document.querySelectorAll('.pb').forEach(b=>b.classList.remove('a'));
   btn.classList.add('a');
   document.getElementById('bn').textContent='—';
