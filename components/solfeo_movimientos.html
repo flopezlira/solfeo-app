@@ -163,7 +163,8 @@ function h2r(h,a){
 // lblc: label config [dx, dy, textAlign, textBaseline] relative to beat point
 const PATS = {
   '2/4':{
-    name:'Péndulo', beats:2, bu:'♩', bm:1.0,
+    name:'Péndulo', beats:2, bu:'♩', bm:1.0, subs:1,
+    subStr: [1.0, 0.3],
     pts:  [[150,218],[150,32]],
     dirs: ['Abajo','Arriba'],
     strengths: [1.0, 0.3],
@@ -171,7 +172,8 @@ const PATS = {
     hint: '"Un — dos,   un — dos…"  —  el movimiento más simple: solo arriba y abajo.',
   },
   '3/4':{
-    name:'Triángulo', beats:3, bu:'♩', bm:1.0,
+    name:'Triángulo', beats:3, bu:'♩', bm:1.0, subs:1,
+    subStr: [1.0, 0.3, 0.3],
     pts:  [[150,218],[244,118],[150,32]],
     dirs: ['Abajo','Derecha','Arriba'],
     strengths: [1.0, 0.3, 0.3],
@@ -179,7 +181,8 @@ const PATS = {
     hint: '"Un-dos-tres…"  —  el recorrido forma un triángulo. El 1 siempre va abajo.',
   },
   '4/4':{
-    name:'Cuadrado', beats:4, bu:'♩', bm:1.0,
+    name:'Cuadrado', beats:4, bu:'♩', bm:1.0, subs:1,
+    subStr: [1.0, 0.3, 0.6, 0.3],
     pts:  [[150,218],[55,118],[245,118],[150,32]],
     dirs: ['Abajo','Izquierda','Derecha','Arriba'],
     strengths: [1.0, 0.3, 0.6, 0.3],
@@ -187,19 +190,20 @@ const PATS = {
     hint: '"Un-dos-tres-cuatro…"  —  abajo, cruce izquierda, cruce derecha, arriba.',
   },
   '6/8':{
-    name:'Péndulo', beats:2, bu:'♩.', bm:1.5,
+    name:'Péndulo', beats:2, bu:'♩.', bm:1.5, subs:3,
+    subStr: [1.0, 0.15, 0.15, 0.6, 0.15, 0.15],
     pts:  [[150,218],[150,32]],
     dirs: ['Abajo','Arriba'],
     strengths: [1.0, 0.6],
     lblc: [[0,22,'center','top'],[0,-22,'center','bottom']],
-    hint: 'Compás binario: dos pulsos de negra con puntillo. Abajo — arriba.',
+    hint: 'Compás compuesto: dos grupos de 3 corcheas. FUERTE-débil-débil-semi-débil-débil.',
   },
 };
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let pk='2/4', bpm=72, playing=false;
 let t=0, lastTs=null, raf=null;
-let curBeat=-1, prevBeat=0;
+let curBeat=-1, prevBeat=0, prevSub=0;
 const trail=[], TRLEN=42;
 let flashes={};
 let aCtx=null;
@@ -322,11 +326,21 @@ function animate(ts){
   trail.push({x:pos.x,y:pos.y});
   if(trail.length>TRLEN) trail.shift();
 
+  // Subdivision tracking for audio
+  const totalSubs=pat.beats*(pat.subs||1);
+  const rawSub=t*totalSubs;
+  const subSeg=Math.floor(rawSub)%totalSubs;
+  if(subSeg!==prevSub){
+    const arrivedSub=(subSeg-1+totalSubs)%totalSubs;
+    prevSub=subSeg;
+    click(pat.subStr[arrivedSub]);
+  }
+
+  // Main beat tracking for visuals
   if(pos.seg!==prevBeat){
     prevBeat=pos.seg;
     curBeat=(pos.seg-1+pat.beats)%pat.beats;
     flashes[curBeat]=1.0;
-    click(pat.strengths[curBeat]);
     // UI
     document.getElementById('bn').textContent=curBeat+1;
     document.getElementById('bname').textContent=pat.name;
@@ -357,7 +371,7 @@ function tog(){
     document.querySelectorAll('.dc').forEach(c=>c.classList.remove('a'));
     trail.length=0; flashes={}; draw();
   }else{
-    playing=true; t=0; prevBeat=0; curBeat=-1; trail.length=0; flashes={};
+    playing=true; t=0; prevBeat=0; prevSub=0; curBeat=-1; trail.length=0; flashes={};
     btn.textContent='⏹ Detener'; btn.classList.add('on');
     raf=requestAnimationFrame(animate);
   }
@@ -365,7 +379,7 @@ function tog(){
 
 function selPat(k, btn){
   if(playing) tog();
-  pk=k; t=0; trail.length=0; flashes={}; prevBeat=0; curBeat=-1;
+  pk=k; t=0; trail.length=0; flashes={}; prevBeat=0; prevSub=0; curBeat=-1;
   document.querySelectorAll('.pb').forEach(b=>b.classList.remove('a'));
   btn.classList.add('a');
   document.getElementById('bn').textContent='—';
