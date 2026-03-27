@@ -351,7 +351,7 @@ function tog(){
     document.querySelectorAll('.dc').forEach(c=>c.classList.remove('a'));
     trail.length=0; flashes={}; draw();
   }else{
-    playing=true; t=0; prevBeat=-1; curBeat=-1; trail.length=0; flashes={};
+    playing=true; t=1/PATS[pk].beats; prevBeat=-1; curBeat=-1; trail.length=0; flashes={};
     btn.textContent='⏹ Detener'; btn.classList.add('on');
     raf=requestAnimationFrame(animate);
   }
@@ -359,7 +359,7 @@ function tog(){
 
 function selPat(k, btn){
   if(playing) tog();
-  pk=k; t=0; trail.length=0; flashes={}; prevBeat=-1; curBeat=-1;
+  pk=k; t=1/PATS[k].beats; trail.length=0; flashes={}; prevBeat=-1; curBeat=-1;
   document.querySelectorAll('.pb').forEach(b=>b.classList.remove('a'));
   btn.classList.add('a');
   document.getElementById('bn').textContent='—';

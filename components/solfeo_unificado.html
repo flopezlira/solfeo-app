@@ -466,7 +466,7 @@ function tog(){
     trail.length=0;flashes={};curNote=null;
     drawConductor();
   }else{
-    playing=true;t=0;prevBeat=-1;curBeat=-1;trail.length=0;flashes={};
+    playing=true;t=1/PATS[pk].beats;prevBeat=-1;curBeat=-1;trail.length=0;flashes={};
     curNote=null;answered=false;missedCur=false;
     btn.textContent='⏹ Detener';btn.classList.add('on');
     raf=requestAnimationFrame(animate);
@@ -475,7 +475,7 @@ function tog(){
 
 function selPat(k,btn){
   if(playing)tog();
-  pk=k;t=0;trail.length=0;flashes={};prevBeat=-1;curBeat=-1;curNote=null;
+  pk=k;t=1/PATS[k].beats;trail.length=0;flashes={};prevBeat=-1;curBeat=-1;curNote=null;
   document.querySelectorAll('.pb').forEach(b=>b.classList.remove('a'));
   btn.classList.add('a');
   document.getElementById('pn').textContent=k+' · '+PATS[k].name;
