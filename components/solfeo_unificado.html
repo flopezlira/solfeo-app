@@ -350,13 +350,13 @@ function showNote(note){
   // Dynamic ledger lines
   lg.innerHTML='';
   const svgns='http://www.w3.org/2000/svg';
-  for(let ly=112;ly<=note.y+1;ly+=14){
+  for(let ly=112;ly<=note.y;ly+=14){
     const l=document.createElementNS(svgns,'line');
     l.setAttribute('x1',95);l.setAttribute('y1',ly);l.setAttribute('x2',115);l.setAttribute('y2',ly);
     l.setAttribute('stroke','var(--staff)');l.setAttribute('stroke-width','1.3');
     lg.appendChild(l);
   }
-  for(let ly=28;ly>=note.y-1;ly-=14){
+  for(let ly=28;ly>=note.y;ly-=14){
     const l=document.createElementNS(svgns,'line');
     l.setAttribute('x1',95);l.setAttribute('y1',ly);l.setAttribute('x2',115);l.setAttribute('y2',ly);
     l.setAttribute('stroke','var(--staff)');l.setAttribute('stroke-width','1.3');

@@ -395,7 +395,7 @@ function showNote(note) {
   lg.innerHTML = '';
   const ns2 = 'http://www.w3.org/2000/svg';
   // Below staff (y > 150): ledger at 170, 190, ...
-  for (let ly = 170; ly <= note.y + 1; ly += 20) {
+  for (let ly = 170; ly <= note.y; ly += 20) {
     const l = document.createElementNS(ns2, 'line');
     l.setAttribute('x1', 196); l.setAttribute('y1', ly);
     l.setAttribute('x2', 226); l.setAttribute('y2', ly);
@@ -403,7 +403,7 @@ function showNote(note) {
     lg.appendChild(l);
   }
   // Above staff (y < 70): ledger at 50, 30, ...
-  for (let ly = 50; ly >= note.y - 1; ly -= 20) {
+  for (let ly = 50; ly >= note.y; ly -= 20) {
     const l = document.createElementNS(ns2, 'line');
     l.setAttribute('x1', 196); l.setAttribute('y1', ly);
     l.setAttribute('x2', 226); l.setAttribute('y2', ly);
