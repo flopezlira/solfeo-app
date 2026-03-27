@@ -169,8 +169,8 @@ input[type=range]{flex:1;}
         <line x1="38" y1="70"  x2="182" y2="70"  stroke="var(--staff)" stroke-width="1.3"/>
         <line x1="38" y1="84"  x2="182" y2="84"  stroke="var(--staff)" stroke-width="1.3"/>
         <line x1="38" y1="98"  x2="182" y2="98"  stroke="var(--staff)" stroke-width="1.3"/>
-        <!-- ledger line for low Do -->
-        <line id="ll" x1="95" y1="112" x2="115" y2="112" stroke="var(--staff)" stroke-width="1.3" opacity="0"/>
+        <!-- ledger lines (dynamic) -->
+        <g id="ll"></g>
         <!-- G clef -->
         <text x="38" y="111" font-size="72" font-family="'Times New Roman',serif" fill="var(--staff)">𝄞</text>
         <!-- note head -->
@@ -197,6 +197,13 @@ input[type=range]{flex:1;}
   </div>
 
   <div class="pats">
+    <button class="pb a fb" onclick="setFilter('all',this)"><span class="t">☰</span><span class="n">Todas</span></button>
+    <button class="pb fb" onclick="setFilter('lines',this)"><span class="t">—</span><span class="n">Líneas</span></button>
+    <button class="pb fb" onclick="setFilter('spaces',this)"><span class="t">○</span><span class="n">Espacios</span></button>
+    <button class="pb" id="ext-btn" onclick="toggleExtended()"><span class="t">+</span><span class="n">Extendido</span></button>
+  </div>
+
+  <div class="pats">
     <button class="pb a" onclick="selPat('2/4',this)"><span class="t">2/4</span><span class="n">Péndulo</span></button>
     <button class="pb"   onclick="selPat('3/4',this)"><span class="t">3/4</span><span class="n">Triángulo</span></button>
     <button class="pb"   onclick="selPat('4/4',this)"><span class="t">4/4</span><span class="n">Cuadrado</span></button>
@@ -218,7 +225,7 @@ input[type=range]{flex:1;}
 // ── Note data ──────────────────────────────────────────────────────────────────
 // Staff SVG viewBox 200×160. Lines at y=42,56,70,84,98. Ledger at y=112.
 // Map: y position → note name
-const NOTES=[
+const STANDARD=[
   {n:'Do', y:112,t:'line'},  {n:'Re',y:105,t:'space'},
   {n:'Mi', y:98, t:'line'},  {n:'Fa',y:91, t:'space'},
   {n:'Sol',y:84, t:'line'},  {n:'La',y:77, t:'space'},
@@ -226,6 +233,14 @@ const NOTES=[
   {n:'Re', y:56, t:'line'},  {n:'Mi',y:49, t:'space'},
   {n:'Fa', y:42, t:'line'},
 ];
+const EXTENDED=[
+  {n:'La', y:126,t:'line'},  {n:'Si',y:119,t:'space'},
+  ...STANDARD,
+  {n:'Sol',y:35, t:'space'}, {n:'La',y:28, t:'line'},
+  {n:'Si', y:21, t:'space'},
+];
+let ALL=STANDARD, pool=ALL.slice();
+let extendedMode=false, filterMode='all';
 
 // ── Conducting patterns ────────────────────────────────────────────────────────
 // Canvas is 120×100 (scaled ×2 for retina)
@@ -321,7 +336,7 @@ function drawConductor(){
 
 // ── Staff note rendering ───────────────────────────────────────────────────────
 function showNote(note){
-  const nh=document.getElementById('nh'),ns=document.getElementById('ns'),ll=document.getElementById('ll');
+  const nh=document.getElementById('nh'),ns=document.getElementById('ns'),lg=document.getElementById('ll');
   nh.setAttribute('cy',note.y);
   nh.setAttribute('cx','105');
   // Stem: up if low, down if high
@@ -332,7 +347,21 @@ function showNote(note){
     ns.setAttribute('x1','95.5');ns.setAttribute('y1',note.y);
     ns.setAttribute('x2','95.5');ns.setAttribute('y2',note.y+38);
   }
-  ll.setAttribute('opacity',note.y===112?'.9':'0');
+  // Dynamic ledger lines
+  lg.innerHTML='';
+  const svgns='http://www.w3.org/2000/svg';
+  for(let ly=112;ly<=note.y+1;ly+=14){
+    const l=document.createElementNS(svgns,'line');
+    l.setAttribute('x1',95);l.setAttribute('y1',ly);l.setAttribute('x2',115);l.setAttribute('y2',ly);
+    l.setAttribute('stroke','var(--staff)');l.setAttribute('stroke-width','1.3');
+    lg.appendChild(l);
+  }
+  for(let ly=28;ly>=note.y-1;ly-=14){
+    const l=document.createElementNS(svgns,'line');
+    l.setAttribute('x1',95);l.setAttribute('y1',ly);l.setAttribute('x2',115);l.setAttribute('y2',ly);
+    l.setAttribute('stroke','var(--staff)');l.setAttribute('stroke-width','1.3');
+    lg.appendChild(l);
+  }
   // flash ring
   const nr=document.getElementById('nr');
   nr.setAttribute('cx','105');nr.setAttribute('cy',note.y);
@@ -347,9 +376,38 @@ function flashNote(){
 
 function pickNote(){
   let n,tries=0;
-  do{ n=NOTES[Math.floor(Math.random()*NOTES.length)];tries++; }
+  do{ n=pool[Math.floor(Math.random()*pool.length)];tries++; }
   while(curNote&&n.y===curNote.y&&tries<20);
   return n;
+}
+function rebuildPool(){
+  pool=filterMode==='lines'?ALL.filter(x=>x.t==='line'):
+       filterMode==='spaces'?ALL.filter(x=>x.t==='space'):ALL.slice();
+}
+function setFilter(m,btn){
+  if(playing)tog();
+  filterMode=m;
+  rebuildPool();
+  sc=0;str=0;missed=0;
+  document.getElementById('sc').textContent=0;
+  document.getElementById('sr').textContent=0;
+  document.getElementById('sm').textContent=0;
+  document.getElementById('pf').style.width='0%';
+  document.querySelectorAll('.fb:not(#ext-btn)').forEach(b=>b.classList.remove('a'));
+  btn.classList.add('a');
+}
+function toggleExtended(){
+  if(playing)tog();
+  extendedMode=!extendedMode;
+  ALL=extendedMode?EXTENDED:STANDARD;
+  rebuildPool();
+  const eb=document.getElementById('ext-btn');
+  eb.classList.toggle('a',extendedMode);
+  sc=0;str=0;missed=0;
+  document.getElementById('sc').textContent=0;
+  document.getElementById('sr').textContent=0;
+  document.getElementById('sm').textContent=0;
+  document.getElementById('pf').style.width='0%';
 }
 
 // ── Audio ──────────────────────────────────────────────────────────────────────
@@ -478,7 +536,7 @@ function tog(){
 function selPat(k,btn){
   if(playing)tog();
   pk=k;t=0;trail.length=0;flashes={};prevBeat=0;curBeat=-1;curNote=null;
-  document.querySelectorAll('.pb').forEach(b=>b.classList.remove('a'));
+  document.querySelectorAll('.pb:not(.fb):not(#ext-btn)').forEach(b=>b.classList.remove('a'));
   btn.classList.add('a');
   document.getElementById('pn').textContent=k+' · '+PATS[k].name;
   document.getElementById('bi').textContent='—';
