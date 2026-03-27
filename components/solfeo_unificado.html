@@ -231,10 +231,10 @@ const NOTES=[
 // Canvas is 120×100 (scaled ×2 for retina)
 const CW=120,CH=100,CCX=60,CCY=50;
 const PATS={
-  '2/4':{name:'Péndulo',  beats:2, pts:[[60,90],[60,12]], strengths:[1.0,0.3]},
-  '3/4':{name:'Triángulo',beats:3, pts:[[60,90],[100,50],[60,12]], strengths:[1.0,0.3,0.3]},
-  '4/4':{name:'Cuadrado', beats:4, pts:[[60,90],[20,50],[100,50],[60,12]], strengths:[1.0,0.3,0.6,0.3]},
-  '6/8':{name:'Péndulo', beats:2, pts:[[60,90],[60,12]], strengths:[1.0,0.6]},
+  '2/4':{name:'Péndulo',  beats:2, pts:[[60,90],[60,12]], strengths:[1.0,0.3], bm:1.0},
+  '3/4':{name:'Triángulo',beats:3, pts:[[60,90],[100,50],[60,12]], strengths:[1.0,0.3,0.3], bm:1.0},
+  '4/4':{name:'Cuadrado', beats:4, pts:[[60,90],[20,50],[100,50],[60,12]], strengths:[1.0,0.3,0.6,0.3], bm:1.0},
+  '6/8':{name:'Péndulo', beats:2, pts:[[60,90],[60,12]], strengths:[1.0,0.6], bm:1.5},
 };
 const dk=window.matchMedia('(prefers-color-scheme:dark)').matches;
 const CC={
@@ -373,7 +373,7 @@ function animate(ts){
   const dt=Math.min((ts-lastTs)/1000,.15);
   lastTs=ts;
   const pat=PATS[pk];
-  const cyc=pat.beats*(60/bpm);
+  const cyc=pat.beats*(60/bpm)*(pat.bm||1);
   t=(t+dt/cyc)%1;
   const pos=gpos(pat,t);
   trail.push({x:pos.x,y:pos.y});
