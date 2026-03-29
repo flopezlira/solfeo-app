@@ -201,6 +201,7 @@ input[type=range]{flex:1;}
     <button class="pb fb" onclick="setFilter('lines',this)"><span class="t">—</span><span class="n">Líneas</span></button>
     <button class="pb fb" onclick="setFilter('spaces',this)"><span class="t">○</span><span class="n">Espacios</span></button>
     <button class="pb" id="ext-btn" onclick="toggleExtended()"><span class="t">+</span><span class="n">Extendido</span></button>
+    <button class="pb a" id="snd-btn" onclick="toggleFbSound()"><span class="t">♪</span><span class="n">Sonido ✓✗</span></button>
   </div>
 
   <div class="pats">
@@ -270,7 +271,7 @@ let playing=false, raf=null, lastTs=null;
 let t=0, prevBeat=0, prevSub=0, curBeat=-1;
 const trail=[], TRLEN=30;
 let flashes={};
-let aCtx=null;
+let aCtx=null, fbSound=true;
 
 // note state
 let curNote=null, answered=false, missedCur=false;
@@ -396,6 +397,10 @@ function setFilter(m,btn){
   document.querySelectorAll('.fb:not(#ext-btn)').forEach(b=>b.classList.remove('a'));
   btn.classList.add('a');
 }
+function toggleFbSound(){
+  fbSound=!fbSound;
+  document.getElementById('snd-btn').classList.toggle('a',fbSound);
+}
 function toggleExtended(){
   if(playing)tog();
   extendedMode=!extendedMode;
@@ -422,6 +427,32 @@ function beep(strength){
     g.gain.setValueAtTime(vol,ac.currentTime);
     g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+.09);
     o.start();o.stop(ac.currentTime+.12);
+  }catch(e){}
+}
+
+function playFeedback(ok){
+  if(!fbSound)return;
+  try{
+    const ac=getAC();
+    if(ok){
+      [523.25,659.25,783.99].forEach((f,i)=>{
+        const o=ac.createOscillator(),g=ac.createGain();
+        o.type='sine';o.frequency.value=f;
+        g.gain.setValueAtTime(0.18,ac.currentTime+i*0.07);
+        g.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+i*0.07+0.12);
+        o.connect(g);g.connect(ac.destination);
+        o.start(ac.currentTime+i*0.07);o.stop(ac.currentTime+i*0.07+0.12);
+      });
+    }else{
+      [440,370].forEach((f,i)=>{
+        const o=ac.createOscillator(),g=ac.createGain();
+        o.type='sine';o.frequency.value=f;
+        g.gain.setValueAtTime(0.14,ac.currentTime+i*0.10);
+        g.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+i*0.10+0.15);
+        o.connect(g);g.connect(ac.destination);
+        o.start(ac.currentTime+i*0.10);o.stop(ac.currentTime+i*0.10+0.15);
+      });
+    }
   }catch(e){}
 }
 
@@ -509,10 +540,12 @@ function chk(ans){
     sc++;str++;
     fb.textContent='✓ ¡Correcto!'; fb.className='fbanner ok';
     nnh.textContent='✓ '+curNote.n; nnh.className='note-name-hint ok';
+    playFeedback(true);
   }else{
     str=0;
     fb.textContent='✗ Era '+curNote.n; fb.className='fbanner err';
     nnh.textContent='✗ era '+curNote.n; nnh.className='note-name-hint err';
+    playFeedback(false);
   }
   document.getElementById('sc').textContent=sc;
   document.getElementById('sr').textContent=str;
@@ -545,7 +578,7 @@ function tog(){
 function selPat(k,btn){
   if(playing)tog();
   pk=k;t=0;trail.length=0;flashes={};prevBeat=0;prevSub=0;curBeat=-1;curNote=null;
-  document.querySelectorAll('.pb:not(.fb):not(#ext-btn)').forEach(b=>b.classList.remove('a'));
+  document.querySelectorAll('.pb:not(.fb):not(#ext-btn):not(#snd-btn)').forEach(b=>b.classList.remove('a'));
   btn.classList.add('a');
   document.getElementById('pn').textContent=k+' · '+PATS[k].name;
   document.getElementById('bi').textContent='—';
