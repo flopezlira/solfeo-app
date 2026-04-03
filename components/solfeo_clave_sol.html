@@ -407,8 +407,9 @@ function updatePct(){
 }
 function updateSpeed(){
   if(!responseTimes.length){document.getElementById('spd').textContent='—';return;}
-  const avg=Math.round(responseTimes.reduce((a,b)=>a+b,0)/responseTimes.length);
-  document.getElementById('spd').textContent=Math.round(60000/avg);
+  const last10=responseTimes.slice(-10);
+  const avg=Math.round(last10.reduce((a,b)=>a+b,0)/last10.length);
+  document.getElementById('spd').textContent=avg>0?Math.round(60000/avg):'—';
 }
 
 function toggleExtended() {
