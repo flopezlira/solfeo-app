@@ -221,6 +221,7 @@
     <div class="stat"><div class="stat-val" id="sc">0</div><div class="stat-lbl">correctas</div></div>
     <div class="stat"><div class="stat-val" id="sr">0</div><div class="stat-lbl">racha</div></div>
     <div class="stat"><div class="stat-val" id="st">0</div><div class="stat-lbl">intentos</div></div>
+    <div class="stat"><div class="stat-val" id="pct">—</div><div class="stat-lbl">% aciertos</div></div>
   </div>
 
   <div class="progress-bar"><div class="progress-fill" id="pf"></div></div>
@@ -264,6 +265,7 @@
     <button class="mode-btn" onclick="setMode('spaces',this)">Solo espacios</button>
     <button class="mode-btn" id="ext-btn" onclick="toggleExtended()">Extendido</button>
     <button class="mode-btn active" id="snd-btn" onclick="toggleFbSound()">Sonido ✓✗</button>
+    <button class="mode-btn" onclick="resetScore()">↺ Reiniciar</button>
   </div>
 
   <button class="cs-toggle" onclick="toggleCS()" id="cs-btn">▾ Mostrar guía de posiciones</button>
@@ -381,16 +383,23 @@ function setMode(m, btn) {
          m === 'spaces' ? ALL.filter(x => x.t === 'space') : ALL.slice();
   document.querySelectorAll('.mode-btn:not(#ext-btn):not(#snd-btn)').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-  sc = 0; tot = 0; str = 0;
-  ['sc','st','sr'].forEach(id => document.getElementById(id).textContent = '0');
-  document.getElementById('pf').style.width = '0%';
-  cur = null;
-  next();
+  resetScore(); cur = null; next();
 }
 
 function toggleFbSound(){
   fbSound=!fbSound;
   document.getElementById('snd-btn').classList.toggle('active',fbSound);
+}
+
+function resetScore(){
+  sc=0; tot=0; str=0;
+  ['sc','st','sr'].forEach(id => document.getElementById(id).textContent='0');
+  document.getElementById('pct').textContent='—';
+  document.getElementById('pf').style.width='0%';
+}
+
+function updatePct(){
+  document.getElementById('pct').textContent=tot>0?Math.round(sc/tot*100):'—';
 }
 
 function toggleExtended() {
@@ -403,11 +412,7 @@ function toggleExtended() {
   const ft = af ? af.textContent.trim() : '';
   pool = ft==='Solo líneas'  ? ALL.filter(x=>x.t==='line') :
          ft==='Solo espacios' ? ALL.filter(x=>x.t==='space') : ALL.slice();
-  sc = 0; tot = 0; str = 0;
-  ['sc','st','sr'].forEach(id => document.getElementById(id).textContent = '0');
-  document.getElementById('pf').style.width = '0%';
-  cur = null;
-  next();
+  resetScore(); cur = null; next();
 }
 
 function showNote(note) {
@@ -497,6 +502,7 @@ function chk(ans) {
   document.getElementById('sc').textContent = sc;
   document.getElementById('sr').textContent = str;
   document.getElementById('st').textContent = tot;
+  updatePct();
   // Progress bar: max 20 correct
   document.getElementById('pf').style.width = Math.min(100, sc * 5) + '%';
 

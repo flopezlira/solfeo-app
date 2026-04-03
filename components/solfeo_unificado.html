@@ -148,6 +148,7 @@ input[type=range]{flex:1;}
     <div class="stat"><div class="sv" id="sc">0</div><div class="sl">correctas</div></div>
     <div class="stat"><div class="sv" id="sr">0</div><div class="sl">racha</div></div>
     <div class="stat"><div class="sv" id="sm">0</div><div class="sl">perdidas</div></div>
+    <div class="stat"><div class="sv" id="pct">—</div><div class="sl">% aciertos</div></div>
   </div>
 
   <div class="progbar"><div class="progfill" id="pf"></div></div>
@@ -202,6 +203,7 @@ input[type=range]{flex:1;}
     <button class="pb fb" onclick="setFilter('spaces',this)"><span class="t">○</span><span class="n">Espacios</span></button>
     <button class="pb" id="ext-btn" onclick="toggleExtended()"><span class="t">+</span><span class="n">Extendido</span></button>
     <button class="pb a" id="snd-btn" onclick="toggleFbSound()"><span class="t">♪</span><span class="n">Sonido ✓✗</span></button>
+    <button class="pb" onclick="resetScore()"><span class="t">↺</span><span class="n">Reiniciar</span></button>
   </div>
 
   <div class="pats">
@@ -275,7 +277,7 @@ let aCtx=null, fbSound=true;
 
 // note state
 let curNote=null, answered=false, missedCur=false;
-let sc=0, str=0, missed=0;
+let sc=0, str=0, missed=0, att=0;
 
 // ── Canvas ────────────────────────────────────────────────────────────────────
 const cv=document.getElementById('cc');
@@ -389,17 +391,25 @@ function setFilter(m,btn){
   if(playing)tog();
   filterMode=m;
   rebuildPool();
-  sc=0;str=0;missed=0;
-  document.getElementById('sc').textContent=0;
-  document.getElementById('sr').textContent=0;
-  document.getElementById('sm').textContent=0;
-  document.getElementById('pf').style.width='0%';
+  resetScore();
   document.querySelectorAll('.fb:not(#ext-btn)').forEach(b=>b.classList.remove('a'));
   btn.classList.add('a');
 }
 function toggleFbSound(){
   fbSound=!fbSound;
   document.getElementById('snd-btn').classList.toggle('a',fbSound);
+}
+function resetScore(){
+  sc=0;str=0;missed=0;att=0;
+  document.getElementById('sc').textContent=0;
+  document.getElementById('sr').textContent=0;
+  document.getElementById('sm').textContent=0;
+  document.getElementById('pct').textContent='—';
+  document.getElementById('pf').style.width='0%';
+}
+function updatePct(){
+  const total=att+missed;
+  document.getElementById('pct').textContent=total>0?Math.round(sc/total*100):'—';
 }
 function toggleExtended(){
   if(playing)tog();
@@ -408,11 +418,7 @@ function toggleExtended(){
   rebuildPool();
   const eb=document.getElementById('ext-btn');
   eb.classList.toggle('a',extendedMode);
-  sc=0;str=0;missed=0;
-  document.getElementById('sc').textContent=0;
-  document.getElementById('sr').textContent=0;
-  document.getElementById('sm').textContent=0;
-  document.getElementById('pf').style.width='0%';
+  resetScore();
 }
 
 // ── Audio ──────────────────────────────────────────────────────────────────────
@@ -496,6 +502,7 @@ function animate(ts){
       document.getElementById('sm').textContent=missed;
       str=0;
       document.getElementById('sr').textContent=0;
+      updatePct();
       // reveal correct answer briefly
       document.querySelectorAll('.nb').forEach(btn=>{
         if(btn.textContent===curNote.n) btn.classList.add('reveal');
@@ -530,7 +537,7 @@ function animate(ts){
 // ── Answer ─────────────────────────────────────────────────────────────────────
 function chk(ans){
   if(!playing||answered||!curNote)return;
-  answered=true;
+  answered=true; att++;
   const ok=ans===curNote.n;
   document.querySelectorAll('.nb').forEach(b=>{
     if(b.textContent===curNote.n) b.classList.add(ok?'ok':'reveal');
@@ -550,6 +557,7 @@ function chk(ans){
   }
   document.getElementById('sc').textContent=sc;
   document.getElementById('sr').textContent=str;
+  updatePct();
   document.getElementById('pf').style.width=Math.min(100,sc*4)+'%';
 }
 
