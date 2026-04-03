@@ -222,6 +222,7 @@
     <div class="stat"><div class="stat-val" id="sr">0</div><div class="stat-lbl">racha</div></div>
     <div class="stat"><div class="stat-val" id="st">0</div><div class="stat-lbl">intentos</div></div>
     <div class="stat"><div class="stat-val" id="pct">—</div><div class="stat-lbl">% aciertos</div></div>
+    <div class="stat"><div class="stat-val" id="spd">—</div><div class="stat-lbl">BPM</div></div>
   </div>
 
   <div class="progress-bar"><div class="progress-fill" id="pf"></div></div>
@@ -349,6 +350,7 @@ let pool = ALL.slice();
 let extendedMode = false;
 let cur = null, sc = 0, tot = 0, str = 0, locked = false;
 let fbSound = true, aCtx = null;
+let noteStartTime = 0, responseTimes = [];
 function getAC(){if(!aCtx)aCtx=new(window.AudioContext||window.webkitAudioContext)();return aCtx;}
 function playFeedback(ok, freq){
   if(!fbSound)return;
@@ -392,14 +394,20 @@ function toggleFbSound(){
 }
 
 function resetScore(){
-  sc=0; tot=0; str=0;
+  sc=0; tot=0; str=0; responseTimes.length=0;
   ['sc','st','sr'].forEach(id => document.getElementById(id).textContent='0');
   document.getElementById('pct').textContent='—';
+  document.getElementById('spd').textContent='—';
   document.getElementById('pf').style.width='0%';
 }
 
 function updatePct(){
   document.getElementById('pct').textContent=tot>0?Math.round(sc/tot*100):'—';
+}
+function updateSpeed(){
+  if(!responseTimes.length){document.getElementById('spd').textContent='—';return;}
+  const avg=Math.round(responseTimes.reduce((a,b)=>a+b,0)/responseTimes.length);
+  document.getElementById('spd').textContent=Math.round(60000/avg);
 }
 
 function toggleExtended() {
@@ -467,6 +475,7 @@ function next() {
 
   cur = nxt;
   showNote(cur);
+  noteStartTime = performance.now();
 }
 
 function chk(ans) {
@@ -483,6 +492,7 @@ function chk(ans) {
   const fb = document.getElementById('fb');
   if (ok) {
     sc++; str++;
+    responseTimes.push(Math.round(performance.now() - noteStartTime));
     fb.textContent = '✓ ¡Correcto!';
     fb.className = 'feedback ok';
     playFeedback(true, cur.f);
@@ -503,6 +513,7 @@ function chk(ans) {
   document.getElementById('sr').textContent = str;
   document.getElementById('st').textContent = tot;
   updatePct();
+  updateSpeed();
   // Progress bar: max 20 correct
   document.getElementById('pf').style.width = Math.min(100, sc * 5) + '%';
 
