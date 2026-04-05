@@ -141,18 +141,20 @@
   /* Mode tabs */
   .modes {
     display: flex;
+    flex-wrap: wrap;
     gap: 6px;
-    margin-bottom: 1.25rem;
+    margin-bottom: 0.5rem;
   }
   .mode-btn {
-    flex: 1;
-    padding: 8px 0;
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 8px 6px;
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     background: var(--surface);
     color: var(--muted);
     font-family: 'Georgia', serif;
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     letter-spacing: 0.04em;
     cursor: pointer;
     transition: all 0.15s;
@@ -164,6 +166,12 @@
     color: var(--accent);
     font-weight: bold;
   }
+  .controls-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 1.25rem;
+  }
+  .controls-row .mode-btn { flex: 1; }
 
   /* Results overlay */
   .results-overlay {
@@ -241,7 +249,7 @@
   <div class="stats">
     <div class="stat"><div class="stat-val" id="sc">0</div><div class="stat-lbl">correctas</div></div>
     <div class="stat"><div class="stat-val" id="sr">0</div><div class="stat-lbl">racha</div></div>
-    <div class="stat"><div class="stat-val" id="st">0/10</div><div class="stat-lbl">ronda</div></div>
+    <div class="stat"><div class="stat-val" id="st">0</div><div class="stat-lbl" id="st-lbl">intentos</div></div>
     <div class="stat"><div class="stat-val" id="pct">—</div><div class="stat-lbl">% aciertos</div></div>
     <div class="stat"><div class="stat-val" id="spd">—</div><div class="stat-lbl">BPM</div></div>
   </div>
@@ -283,11 +291,14 @@
 
   <div class="modes">
     <button class="mode-btn active" onclick="setMode('all',this)">Todas</button>
-    <button class="mode-btn" onclick="setMode('lines',this)">Solo líneas</button>
-    <button class="mode-btn" onclick="setMode('spaces',this)">Solo espacios</button>
+    <button class="mode-btn" onclick="setMode('lines',this)">Líneas</button>
+    <button class="mode-btn" onclick="setMode('spaces',this)">Espacios</button>
     <button class="mode-btn" id="ext-btn" onclick="toggleExtended()">Extendido</button>
+  </div>
+  <div class="controls-row">
     <button class="mode-btn active" id="snd-btn" onclick="toggleFbSound()">Sonido ✓✗</button>
-    <button class="mode-btn" onclick="resetScore()">↺ Reiniciar</button>
+    <button class="mode-btn" id="trivia-btn" onclick="toggleTrivia()">Trivia 10</button>
+    <button class="mode-btn" onclick="resetScore();next()">↺ Reiniciar</button>
   </div>
 
   <div class="results-overlay" id="results">
@@ -383,7 +394,7 @@ let cur = null, sc = 0, tot = 0, str = 0, locked = false;
 let fbSound = true, aCtx = null;
 let noteStartTime = 0, responseTimes = [];
 const TRIVIA_SIZE = 10;
-let round = 0, pendingTimer = null;
+let round = 0, pendingTimer = null, triviaMode = false;
 function getAC(){if(!aCtx)aCtx=new(window.AudioContext||window.webkitAudioContext)();return aCtx;}
 function playFeedback(ok, freq){
   if(!fbSound)return;
@@ -431,11 +442,18 @@ function resetScore(){
   sc=0; tot=0; str=0; round=0; responseTimes.length=0;
   document.getElementById('sc').textContent='0';
   document.getElementById('sr').textContent='0';
-  document.getElementById('st').textContent='0/'+TRIVIA_SIZE;
+  document.getElementById('st').textContent=triviaMode?'0/'+TRIVIA_SIZE:'0';
+  document.getElementById('st-lbl').textContent=triviaMode?'ronda':'intentos';
   document.getElementById('pct').textContent='—';
   document.getElementById('spd').textContent='—';
   document.getElementById('pf').style.width='0%';
   document.getElementById('results').style.display='none';
+}
+
+function toggleTrivia(){
+  triviaMode=!triviaMode;
+  document.getElementById('trivia-btn').classList.toggle('active',triviaMode);
+  resetScore();next();
 }
 
 function showResults(){
@@ -564,14 +582,20 @@ function chk(ans) {
   round++;
   document.getElementById('sc').textContent = sc;
   document.getElementById('sr').textContent = str;
-  document.getElementById('st').textContent = round + '/' + TRIVIA_SIZE;
   updatePct();
   updateSpeed();
-  document.getElementById('pf').style.width = Math.round(round / TRIVIA_SIZE * 100) + '%';
 
-  if (round >= TRIVIA_SIZE) {
-    pendingTimer = setTimeout(showResults, 1500);
+  if (triviaMode) {
+    document.getElementById('st').textContent = round + '/' + TRIVIA_SIZE;
+    document.getElementById('pf').style.width = Math.round(round / TRIVIA_SIZE * 100) + '%';
+    if (round >= TRIVIA_SIZE) {
+      pendingTimer = setTimeout(showResults, 1500);
+    } else {
+      pendingTimer = setTimeout(next, 1500);
+    }
   } else {
+    document.getElementById('st').textContent = tot;
+    document.getElementById('pf').style.width = Math.min(100, sc * 5) + '%';
     pendingTimer = setTimeout(next, 1500);
   }
 }
