@@ -432,8 +432,8 @@ function showNote(note) {
 
   nh.setAttribute('cy', note.y);
 
-  // Stem direction: up if below middle line, down if above
-  if (note.y >= 110) {
+  // Stem direction: up if below middle line (Si), down if on or above
+  if (note.y > 110) {
     ns.setAttribute('x1', 223); ns.setAttribute('y1', note.y);
     ns.setAttribute('x2', 223); ns.setAttribute('y2', note.y - 48);
   } else {

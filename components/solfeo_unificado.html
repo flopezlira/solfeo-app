@@ -342,8 +342,8 @@ function showNote(note){
   const nh=document.getElementById('nh'),ns=document.getElementById('ns'),lg=document.getElementById('ll');
   nh.setAttribute('cy',note.y);
   nh.setAttribute('cx','105');
-  // Stem: up if low, down if high
-  if(note.y>=70){
+  // Stem: up if below middle line (Si), down if on or above
+  if(note.y>70){
     ns.setAttribute('x1','114.5');ns.setAttribute('y1',note.y);
     ns.setAttribute('x2','114.5');ns.setAttribute('y2',note.y-38);
   }else{
