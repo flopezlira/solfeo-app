@@ -165,6 +165,26 @@
     font-weight: bold;
   }
 
+  /* Results overlay */
+  .results-overlay {
+    display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+    background:rgba(0,0,0,0.55); z-index:100;
+    align-items:center; justify-content:center;
+  }
+  .results-card {
+    background:var(--surface); border-radius:var(--radius); padding:2rem 2.5rem;
+    text-align:center; box-shadow:0 8px 32px rgba(0,0,0,0.25); max-width:320px; width:90%;
+  }
+  .results-card h2 { color:var(--text); font-family:Georgia,serif; margin-bottom:1rem; font-size:1.3rem; }
+  .results-pct { font-size:3rem; font-weight:bold; color:var(--accent); line-height:1; }
+  .results-msg { font-size:1rem; color:var(--muted); margin:0.5rem 0 1rem; font-family:Georgia,serif; }
+  .results-detail { font-size:0.85rem; color:var(--muted); margin-bottom:1.25rem; }
+  .results-btn {
+    background:var(--accent); color:#fff; border:none; border-radius:var(--radius-sm);
+    padding:0.7rem 2rem; font-size:1rem; cursor:pointer; font-family:Georgia,serif;
+  }
+  .results-btn:hover { opacity:0.85; }
+
   /* Cheat sheet */
   .cs-toggle {
     background: none;
@@ -221,7 +241,7 @@
   <div class="stats">
     <div class="stat"><div class="stat-val" id="sc">0</div><div class="stat-lbl">correctas</div></div>
     <div class="stat"><div class="stat-val" id="sr">0</div><div class="stat-lbl">racha</div></div>
-    <div class="stat"><div class="stat-val" id="st">0</div><div class="stat-lbl">intentos</div></div>
+    <div class="stat"><div class="stat-val" id="st">0/10</div><div class="stat-lbl">ronda</div></div>
     <div class="stat"><div class="stat-val" id="pct">—</div><div class="stat-lbl">% aciertos</div></div>
     <div class="stat"><div class="stat-val" id="spd">—</div><div class="stat-lbl">BPM</div></div>
   </div>
@@ -268,6 +288,16 @@
     <button class="mode-btn" id="ext-btn" onclick="toggleExtended()">Extendido</button>
     <button class="mode-btn active" id="snd-btn" onclick="toggleFbSound()">Sonido ✓✗</button>
     <button class="mode-btn" onclick="resetScore()">↺ Reiniciar</button>
+  </div>
+
+  <div class="results-overlay" id="results">
+    <div class="results-card">
+      <h2>¡Trivia completada!</h2>
+      <div class="results-pct" id="res-pct">0%</div>
+      <div class="results-msg" id="res-msg"></div>
+      <div class="results-detail" id="res-detail"></div>
+      <button class="results-btn" onclick="resetScore();next()">Jugar de nuevo</button>
+    </div>
   </div>
 
   <button class="cs-toggle" onclick="toggleCS()" id="cs-btn">▾ Mostrar guía de posiciones</button>
@@ -352,6 +382,8 @@ let extendedMode = false;
 let cur = null, sc = 0, tot = 0, str = 0, locked = false;
 let fbSound = true, aCtx = null;
 let noteStartTime = 0, responseTimes = [];
+const TRIVIA_SIZE = 10;
+let round = 0, pendingTimer = null;
 function getAC(){if(!aCtx)aCtx=new(window.AudioContext||window.webkitAudioContext)();return aCtx;}
 function playFeedback(ok, freq){
   if(!fbSound)return;
@@ -395,11 +427,29 @@ function toggleFbSound(){
 }
 
 function resetScore(){
-  sc=0; tot=0; str=0; responseTimes.length=0;
-  ['sc','st','sr'].forEach(id => document.getElementById(id).textContent='0');
+  if(pendingTimer){clearTimeout(pendingTimer);pendingTimer=null;}
+  sc=0; tot=0; str=0; round=0; responseTimes.length=0;
+  document.getElementById('sc').textContent='0';
+  document.getElementById('sr').textContent='0';
+  document.getElementById('st').textContent='0/'+TRIVIA_SIZE;
   document.getElementById('pct').textContent='—';
   document.getElementById('spd').textContent='—';
   document.getElementById('pf').style.width='0%';
+  document.getElementById('results').style.display='none';
+}
+
+function showResults(){
+  const pct=Math.round(sc/TRIVIA_SIZE*100);
+  const msg=pct>=90?'¡Excelente!':pct>=70?'¡Muy bien!':pct>=50?'Sigue practicando':'¡No te rindas!';
+  document.getElementById('res-pct').textContent=pct+'%';
+  document.getElementById('res-msg').textContent=msg;
+  let detail=sc+'/'+TRIVIA_SIZE+' correctas';
+  if(responseTimes.length){
+    const avg=Math.round(responseTimes.reduce((a,b)=>a+b,0)/responseTimes.length);
+    detail+=' · '+Math.round(60000/avg)+' BPM';
+  }
+  document.getElementById('res-detail').textContent=detail;
+  document.getElementById('results').style.display='flex';
 }
 
 function updatePct(){
@@ -511,15 +561,19 @@ function chk(ans) {
     lbl.setAttribute('opacity', '0.8');
   }
 
+  round++;
   document.getElementById('sc').textContent = sc;
   document.getElementById('sr').textContent = str;
-  document.getElementById('st').textContent = tot;
+  document.getElementById('st').textContent = round + '/' + TRIVIA_SIZE;
   updatePct();
   updateSpeed();
-  // Progress bar: max 20 correct
-  document.getElementById('pf').style.width = Math.min(100, sc * 5) + '%';
+  document.getElementById('pf').style.width = Math.round(round / TRIVIA_SIZE * 100) + '%';
 
-  setTimeout(next, 1500);
+  if (round >= TRIVIA_SIZE) {
+    pendingTimer = setTimeout(showResults, 1500);
+  } else {
+    pendingTimer = setTimeout(next, 1500);
+  }
 }
 
 function toggleCS() {
