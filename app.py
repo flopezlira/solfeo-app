@@ -40,7 +40,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-tab1, tab2, tab3 = st.tabs(["🎵 Identificación de Notas", "🎼 Movimientos de Dirección", "🎶 Notas + Dirección"])
+tab1, tab2, tab3, tab4 = st.tabs(["🎵 Notas", "🎼 Dirección", "🎶 Notas + Dirección", "🎵 Intervalos"])
 
 with tab1:
     from components.solfeo_quiz import render_quiz
@@ -53,3 +53,7 @@ with tab2:
 with tab3:
     from components.solfeo_combined import render_combined
     render_combined()
+
+with tab4:
+    from components.solfeo_intervals import render_intervals
+    render_intervals()

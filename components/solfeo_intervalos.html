@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Solfeo — Lectura de Intervalos</title>
+<style>
+  :root {
+    --bg: #f9f7f2;
+    --surface: #ffffff;
+    --surface2: #f1ede5;
+    --border: #e0d9ce;
+    --text: #1c1a16;
+    --muted: #7a7468;
+    --accent: #2d5fa3;
+    --accent-bg: #e8f0fb;
+    --ok: #1a7a4a;
+    --ok-bg: #e6f5ed;
+    --ok-border: #9ed8bb;
+    --err: #b33a2a;
+    --err-bg: #fdecea;
+    --err-border: #f5b0a6;
+    --note-fill: #1c1a16;
+    --staff: #4a453c;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #18161200;
+      --surface: #252118;
+      --surface2: #1c1a14;
+      --border: #38342a;
+      --text: #f0ece4;
+      --muted: #9a9282;
+      --accent: #6b9de8;
+      --accent-bg: #1a2840;
+      --ok: #4ecb85;
+      --ok-bg: #0e2a1c;
+      --ok-border: #1e5c38;
+      --err: #f07060;
+      --err-bg: #2a0f0a;
+      --err-border: #6b2318;
+      --note-fill: #f0ece4;
+      --staff: #8a8278;
+    }
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Georgia', serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 2rem 1rem;
+  }
+
+  h1 {
+    font-size: 1.1rem;
+    font-weight: normal;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.3rem;
+  }
+  .subtitle {
+    font-size: 0.78rem;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 2rem;
+  }
+
+  .container { width: 100%; max-width: 520px; }
+
+  /* Stats */
+  .stats {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 1rem 2rem;
+    margin-bottom: 1.25rem;
+  }
+  .stat { text-align: center; min-width: 3.5rem; }
+  .stat-val { font-size: 1.5rem; font-weight: bold; color: var(--text); line-height: 1; }
+  .stat-lbl { font-size: 0.6rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-top: 2px; }
+
+  /* Progress */
+  .progress-bar { height: 6px; background: var(--surface2); border-radius: 3px; margin-bottom: 1.5rem; overflow: hidden; }
+  .progress-fill { height: 100%; width: 0%; background: var(--accent); border-radius: 3px; transition: width 0.3s; }
+
+  /* Staff */
+  .staff-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 0.75rem;
+    margin-bottom: 1rem;
+    position: relative;
+  }
+  .staff-wrap svg { display: block; width: 100%; }
+
+  /* Feedback */
+  .feedback {
+    text-align: center;
+    height: 28px;
+    margin-bottom: 1rem;
+    font-size: 1rem;
+    font-weight: bold;
+    letter-spacing: 0.04em;
+    transition: color 0.2s;
+  }
+  .feedback.ok  { color: var(--ok); }
+  .feedback.err { color: var(--err); }
+
+  /* Pair buttons */
+  .pairs-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin-bottom: 1.25rem;
+  }
+  .pair-btn {
+    padding: 12px 4px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text);
+    font-family: 'Georgia', serif;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: background 0.1s, border-color 0.1s, color 0.1s, transform 0.08s;
+    user-select: none;
+  }
+  .pair-btn:hover { background: var(--surface2); }
+  .pair-btn:active { transform: scale(0.96); }
+  .pair-btn.ok  { background: var(--ok-bg);  border-color: var(--ok-border);  color: var(--ok); }
+  .pair-btn.err { background: var(--err-bg); border-color: var(--err-border); color: var(--err); }
+  .pair-btn.reveal { background: var(--ok-bg); border-color: var(--ok-border); color: var(--ok); opacity: 0.7; }
+
+  /* Mode tabs */
+  .modes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 0.5rem;
+  }
+  .mode-btn {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 8px 6px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--muted);
+    font-family: 'Georgia', serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-transform: uppercase;
+  }
+  .mode-btn.active {
+    background: var(--accent-bg);
+    border-color: var(--accent);
+    color: var(--accent);
+    font-weight: bold;
+  }
+  .controls-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 1.25rem;
+  }
+  .controls-row .mode-btn { flex: 1; }
+
+  /* Results overlay */
+  .results-overlay {
+    display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+    background:rgba(0,0,0,0.55); z-index:100;
+    align-items:center; justify-content:center;
+  }
+  .results-card {
+    background:var(--surface); border-radius:var(--radius); padding:2rem 2.5rem;
+    text-align:center; box-shadow:0 8px 32px rgba(0,0,0,0.25); max-width:320px; width:90%;
+  }
+  .results-card h2 { color:var(--text); font-family:Georgia,serif; margin-bottom:1rem; font-size:1.3rem; }
+  .results-pct { font-size:3rem; font-weight:bold; color:var(--accent); line-height:1; }
+  .results-msg { font-size:1rem; color:var(--muted); margin:0.5rem 0 1rem; font-family:Georgia,serif; }
+  .results-detail { font-size:0.85rem; color:var(--muted); margin-bottom:1.25rem; }
+  .results-btn {
+    background:var(--accent); color:#fff; border:none; border-radius:var(--radius-sm);
+    padding:0.7rem 2rem; font-size:1rem; cursor:pointer; font-family:Georgia,serif;
+  }
+  .results-btn:hover { opacity:0.85; }
+</style>
+</head>
+<body>
+
+<h1>Solfeo</h1>
+<div class="subtitle">Clave de Sol — Lectura de Intervalos</div>
+
+<div class="container">
+
+  <div class="stats">
+    <div class="stat"><div class="stat-val" id="sc">0</div><div class="stat-lbl">correctas</div></div>
+    <div class="stat"><div class="stat-val" id="sr">0</div><div class="stat-lbl">racha</div></div>
+    <div class="stat"><div class="stat-val" id="st">0</div><div class="stat-lbl" id="st-lbl">intentos</div></div>
+    <div class="stat"><div class="stat-val" id="pct">—</div><div class="stat-lbl">% aciertos</div></div>
+    <div class="stat"><div class="stat-val" id="spd">—</div><div class="stat-lbl">BPM</div></div>
+  </div>
+
+  <div class="progress-bar"><div class="progress-fill" id="pf"></div></div>
+
+  <div class="staff-wrap">
+    <svg id="staff-svg" viewBox="0 0 380 200" xmlns="http://www.w3.org/2000/svg">
+      <!-- Staff lines -->
+      <line x1="80" y1="70"  x2="350" y2="70"  stroke="var(--staff)" stroke-width="1.4"/>
+      <line x1="80" y1="90"  x2="350" y2="90"  stroke="var(--staff)" stroke-width="1.4"/>
+      <line x1="80" y1="110" x2="350" y2="110" stroke="var(--staff)" stroke-width="1.4"/>
+      <line x1="80" y1="130" x2="350" y2="130" stroke="var(--staff)" stroke-width="1.4"/>
+      <line x1="80" y1="150" x2="350" y2="150" stroke="var(--staff)" stroke-width="1.4"/>
+      <!-- Ledger lines (dynamic) -->
+      <g id="ledger-lines"></g>
+      <!-- G clef (treble) -->
+      <text x="82" y="166" font-size="116" font-family="'Times New Roman', serif" fill="var(--staff)">𝄞</text>
+      <!-- Note heads -->
+      <ellipse id="nh1" cx="180" cy="110" rx="10" ry="7.5" fill="var(--note-fill)"/>
+      <ellipse id="nh2" cx="245" cy="110" rx="10" ry="7.5" fill="var(--note-fill)"/>
+      <!-- Stems -->
+      <line id="ns1" x1="190" y1="110" x2="190" y2="65" stroke="var(--note-fill)" stroke-width="2"/>
+      <line id="ns2" x1="255" y1="110" x2="255" y2="65" stroke="var(--note-fill)" stroke-width="2"/>
+      <!-- Beam -->
+      <line id="beam" x1="190" y1="65" x2="255" y2="65" stroke="var(--note-fill)" stroke-width="3.5"/>
+    </svg>
+  </div>
+
+  <div class="feedback" id="fb"></div>
+
+  <div class="pairs-grid" id="pairs-grid">
+    <!-- Buttons generated dynamically -->
+  </div>
+
+  <div class="modes">
+    <button class="mode-btn active" onclick="setMode('all',this)">Todas</button>
+    <button class="mode-btn" onclick="setMode('lines',this)">Líneas</button>
+    <button class="mode-btn" onclick="setMode('spaces',this)">Espacios</button>
+    <button class="mode-btn" id="ext-btn" onclick="toggleExtended()">Extendido</button>
+  </div>
+  <div class="controls-row">
+    <button class="mode-btn active" id="snd-btn" onclick="toggleFbSound()">Sonido ✓✗</button>
+    <button class="mode-btn" id="trivia-btn" onclick="toggleTrivia()">Trivia 10</button>
+    <button class="mode-btn" onclick="resetScore();next()">↺ Reiniciar</button>
+  </div>
+
+  <div class="results-overlay" id="results">
+    <div class="results-card">
+      <h2>¡Trivia completada!</h2>
+      <div class="results-pct" id="res-pct">0%</div>
+      <div class="results-msg" id="res-msg"></div>
+      <div class="results-detail" id="res-detail"></div>
+      <button class="results-btn" onclick="resetScore();next()">Jugar de nuevo</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const STANDARD = [
+  {n:'Do',  y:170, t:'line',  f:261.63},
+  {n:'Re',  y:160, t:'space', f:293.66},
+  {n:'Mi',  y:150, t:'line',  f:329.63},
+  {n:'Fa',  y:140, t:'space', f:349.23},
+  {n:'Sol', y:130, t:'line',  f:392.00},
+  {n:'La',  y:120, t:'space', f:440.00},
+  {n:'Si',  y:110, t:'line',  f:493.88},
+  {n:'Do',  y:100, t:'space', f:523.25},
+  {n:'Re',  y:90,  t:'line',  f:587.33},
+  {n:'Mi',  y:80,  t:'space', f:659.25},
+  {n:'Fa',  y:70,  t:'line',  f:698.46},
+];
+const EXTENDED = [
+  {n:'La',  y:190, t:'line',  f:220.00},
+  {n:'Si',  y:180, t:'space', f:246.94},
+  ...STANDARD,
+  {n:'Sol', y:60,  t:'space', f:783.99},
+  {n:'La',  y:50,  t:'line',  f:880.00},
+  {n:'Si',  y:40,  t:'space', f:987.77},
+];
+let ALL = STANDARD;
+let pool = ALL.slice();
+let extendedMode = false;
+let curPair = null, sc = 0, tot = 0, str = 0, locked = false;
+let fbSound = true, aCtx = null;
+let noteStartTime = 0, responseTimes = [];
+const TRIVIA_SIZE = 10;
+let round = 0, pendingTimer = null, triviaMode = false;
+
+// ── Audio ──────────────────────────────────────────────────────────────
+function getAC(){if(!aCtx)aCtx=new(window.AudioContext||window.webkitAudioContext)();return aCtx;}
+
+function playFeedback(ok, freq1, freq2){
+  if(!fbSound)return;
+  try{
+    const ac=getAC(), t0=ac.currentTime;
+    if(ok && freq1){
+      // Play both notes in sequence
+      [freq1, freq2].forEach((freq,i)=>{
+        if(!freq)return;
+        [1,2,3].forEach((h,j)=>{
+          const gains=[0.25,0.10,0.04];
+          const o=ac.createOscillator(),g=ac.createGain();
+          o.type='sine';o.frequency.value=freq*h;
+          g.gain.setValueAtTime(gains[j],t0+i*0.35);
+          g.gain.exponentialRampToValueAtTime(0.001,t0+i*0.35+0.30);
+          o.connect(g);g.connect(ac.destination);
+          o.start(t0+i*0.35);o.stop(t0+i*0.35+0.30);
+        });
+      });
+    }else{
+      [440,370].forEach((f,i)=>{
+        const o=ac.createOscillator(),g=ac.createGain();
+        o.type='sine';o.frequency.value=f;
+        g.gain.setValueAtTime(0.14,t0+i*0.10);
+        g.gain.exponentialRampToValueAtTime(0.001,t0+i*0.10+0.15);
+        o.connect(g);g.connect(ac.destination);
+        o.start(t0+i*0.10);o.stop(t0+i*0.10+0.15);
+      });
+    }
+  }catch(e){}
+}
+
+// ── Pair picking ───────────────────────────────────────────────────────
+function pairLabel(a, b){
+  // Always order grave to agudo (higher y = lower pitch = first)
+  return a.y >= b.y ? a.n+'+'+b.n : b.n+'+'+a.n;
+}
+
+function pickPair(){
+  let a, b, tries=0;
+  do {
+    a = pool[Math.floor(Math.random()*pool.length)];
+    b = pool[Math.floor(Math.random()*pool.length)];
+    tries++;
+  } while((a.y===b.y || (curPair && pairLabel(a,b)===pairLabel(curPair.a,curPair.b))) && tries<50);
+  // Order: a = lower note (higher y), b = higher note (lower y)
+  if(a.y < b.y){ const tmp=a; a=b; b=tmp; }
+  return {a, b};
+}
+
+function generateButtons(pair){
+  const correct = pairLabel(pair.a, pair.b);
+  const options = new Set([correct]);
+
+  // Generate distractors: at least one shares a note with the correct pair
+  let tries=0;
+  while(options.size < 6 && tries < 100){
+    let a, b;
+    if(options.size <= 2){
+      // Share one note with correct pair
+      a = Math.random()<0.5 ? pair.a : pair.b;
+      b = pool[Math.floor(Math.random()*pool.length)];
+    } else {
+      a = pool[Math.floor(Math.random()*pool.length)];
+      b = pool[Math.floor(Math.random()*pool.length)];
+    }
+    if(a.y !== b.y){
+      const lbl = pairLabel(a, b);
+      if(!options.has(lbl)) options.add(lbl);
+    }
+    tries++;
+  }
+
+  const arr = Array.from(options);
+  // Shuffle
+  for(let i=arr.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]]=[arr[j],arr[i]];
+  }
+
+  const grid = document.getElementById('pairs-grid');
+  grid.innerHTML = '';
+  arr.forEach(lbl => {
+    const btn = document.createElement('button');
+    btn.className = 'pair-btn';
+    btn.textContent = lbl;
+    btn.onclick = ()=>chk(lbl);
+    grid.appendChild(btn);
+  });
+}
+
+// ── Staff rendering ────────────────────────────────────────────────────
+function showPair(pair){
+  const nh1=document.getElementById('nh1'), nh2=document.getElementById('nh2');
+  const ns1=document.getElementById('ns1'), ns2=document.getElementById('ns2');
+  const beam=document.getElementById('beam');
+  const lg=document.getElementById('ledger-lines');
+
+  nh1.setAttribute('cy', pair.a.y);
+  nh2.setAttribute('cy', pair.b.y);
+
+  const avgY = (pair.a.y + pair.b.y) / 2;
+  const stemLen = 48;
+
+  // Stem direction: both go same way based on average position vs middle line (110)
+  if(avgY > 110){
+    // Stems up (right side of note head)
+    ns1.setAttribute('x1',190);ns1.setAttribute('y1',pair.a.y);
+    ns1.setAttribute('x2',190);ns1.setAttribute('y2',pair.a.y-stemLen);
+    ns2.setAttribute('x1',255);ns2.setAttribute('y1',pair.b.y);
+    ns2.setAttribute('x2',255);ns2.setAttribute('y2',pair.b.y-stemLen);
+    beam.setAttribute('x1',190);beam.setAttribute('y1',pair.a.y-stemLen);
+    beam.setAttribute('x2',255);beam.setAttribute('y2',pair.b.y-stemLen);
+  }else{
+    // Stems down (left side of note head)
+    ns1.setAttribute('x1',170);ns1.setAttribute('y1',pair.a.y);
+    ns1.setAttribute('x2',170);ns1.setAttribute('y2',pair.a.y+stemLen);
+    ns2.setAttribute('x1',235);ns2.setAttribute('y1',pair.b.y);
+    ns2.setAttribute('x2',235);ns2.setAttribute('y2',pair.b.y+stemLen);
+    beam.setAttribute('x1',170);beam.setAttribute('y1',pair.a.y+stemLen);
+    beam.setAttribute('x2',235);beam.setAttribute('y2',pair.b.y+stemLen);
+  }
+
+  // Dynamic ledger lines
+  lg.innerHTML='';
+  const svgns='http://www.w3.org/2000/svg';
+  [pair.a, pair.b].forEach((note,idx)=>{
+    const cx = idx===0 ? 180 : 245;
+    for(let ly=170;ly<=note.y;ly+=20){
+      const l=document.createElementNS(svgns,'line');
+      l.setAttribute('x1',cx-15);l.setAttribute('y1',ly);l.setAttribute('x2',cx+15);l.setAttribute('y2',ly);
+      l.setAttribute('stroke','var(--staff)');l.setAttribute('stroke-width','1.3');
+      lg.appendChild(l);
+    }
+    for(let ly=50;ly>=note.y;ly-=20){
+      const l=document.createElementNS(svgns,'line');
+      l.setAttribute('x1',cx-15);l.setAttribute('y1',ly);l.setAttribute('x2',cx+15);l.setAttribute('y2',ly);
+      l.setAttribute('stroke','var(--staff)');l.setAttribute('stroke-width','1.3');
+      lg.appendChild(l);
+    }
+  });
+}
+
+// ── Quiz logic ─────────────────────────────────────────────────────────
+function next(){
+  locked = false;
+  document.getElementById('fb').textContent = '';
+  document.getElementById('fb').className = 'feedback';
+
+  curPair = pickPair();
+  showPair(curPair);
+  generateButtons(curPair);
+  noteStartTime = performance.now();
+}
+
+function chk(ans){
+  if(locked) return;
+  locked = true;
+  tot++;
+
+  const correct = pairLabel(curPair.a, curPair.b);
+  const ok = ans === correct;
+
+  document.querySelectorAll('.pair-btn').forEach(b => {
+    if(b.textContent === correct) b.classList.add(ok?'ok':'reveal');
+    if(b.textContent === ans && !ok) b.classList.add('err');
+  });
+
+  const fb = document.getElementById('fb');
+  if(ok){
+    sc++; str++;
+    responseTimes.push(Math.round(performance.now() - noteStartTime));
+    fb.textContent = '✓ ¡Correcto!';
+    fb.className = 'feedback ok';
+    playFeedback(true, curPair.a.f, curPair.b.f);
+  }else{
+    str = 0;
+    fb.textContent = '✗ Era ' + correct;
+    fb.className = 'feedback err';
+    playFeedback(false, 0, 0);
+  }
+
+  round++;
+  document.getElementById('sc').textContent = sc;
+  document.getElementById('sr').textContent = str;
+  updatePct();
+  updateSpeed();
+
+  if(triviaMode){
+    document.getElementById('st').textContent = round+'/'+TRIVIA_SIZE;
+    document.getElementById('pf').style.width = Math.round(round/TRIVIA_SIZE*100)+'%';
+    if(round >= TRIVIA_SIZE){
+      pendingTimer = setTimeout(showResults, 1500);
+    }else{
+      pendingTimer = setTimeout(next, 1500);
+    }
+  }else{
+    document.getElementById('st').textContent = tot;
+    document.getElementById('pf').style.width = Math.min(100, sc*5)+'%';
+    pendingTimer = setTimeout(next, 1500);
+  }
+}
+
+// ── Score & stats ──────────────────────────────────────────────────────
+function resetScore(){
+  if(pendingTimer){clearTimeout(pendingTimer);pendingTimer=null;}
+  sc=0; tot=0; str=0; round=0; responseTimes.length=0;
+  document.getElementById('sc').textContent='0';
+  document.getElementById('sr').textContent='0';
+  document.getElementById('st').textContent=triviaMode?'0/'+TRIVIA_SIZE:'0';
+  document.getElementById('st-lbl').textContent=triviaMode?'ronda':'intentos';
+  document.getElementById('pct').textContent='—';
+  document.getElementById('spd').textContent='—';
+  document.getElementById('pf').style.width='0%';
+  document.getElementById('results').style.display='none';
+}
+
+function updatePct(){
+  document.getElementById('pct').textContent=tot>0?Math.round(sc/tot*100):'—';
+}
+function updateSpeed(){
+  if(!responseTimes.length){document.getElementById('spd').textContent='—';return;}
+  const last10=responseTimes.slice(-10);
+  const avg=Math.round(last10.reduce((a,b)=>a+b,0)/last10.length);
+  document.getElementById('spd').textContent=avg>0?Math.round(60000/avg):'—';
+}
+
+function toggleTrivia(){
+  triviaMode=!triviaMode;
+  document.getElementById('trivia-btn').classList.toggle('active',triviaMode);
+  resetScore();next();
+}
+
+function showResults(){
+  const pct=Math.round(sc/TRIVIA_SIZE*100);
+  const msg=pct>=90?'¡Excelente!':pct>=70?'¡Muy bien!':pct>=50?'Sigue practicando':'¡No te rindas!';
+  document.getElementById('res-pct').textContent=pct+'%';
+  document.getElementById('res-msg').textContent=msg;
+  let detail=sc+'/'+TRIVIA_SIZE+' correctas';
+  if(responseTimes.length){
+    const avg=Math.round(responseTimes.reduce((a,b)=>a+b,0)/responseTimes.length);
+    detail+=' · '+Math.round(60000/avg)+' BPM';
+  }
+  document.getElementById('res-detail').textContent=detail;
+  document.getElementById('results').style.display='flex';
+}
+
+function toggleFbSound(){
+  fbSound=!fbSound;
+  document.getElementById('snd-btn').classList.toggle('active',fbSound);
+}
+
+// ── Filter modes ───────────────────────────────────────────────────────
+function setMode(m, btn){
+  pool = m==='lines'  ? ALL.filter(x=>x.t==='line') :
+         m==='spaces' ? ALL.filter(x=>x.t==='space') : ALL.slice();
+  document.querySelectorAll('.modes .mode-btn:not(#ext-btn)').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  resetScore(); next();
+}
+
+function toggleExtended(){
+  extendedMode = !extendedMode;
+  ALL = extendedMode ? EXTENDED : STANDARD;
+  const eb = document.getElementById('ext-btn');
+  eb.classList.toggle('active', extendedMode);
+  const af = document.querySelector('.modes .mode-btn.active:not(#ext-btn)');
+  const ft = af ? af.textContent.trim() : '';
+  pool = ft==='Líneas'  ? ALL.filter(x=>x.t==='line') :
+         ft==='Espacios' ? ALL.filter(x=>x.t==='space') : ALL.slice();
+  resetScore(); next();
+}
+
+// ── Init ───────────────────────────────────────────────────────────────
+next();
+</script>
+</body>
+</html>
